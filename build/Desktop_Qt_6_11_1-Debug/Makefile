@@ -16,7 +16,7 @@ CC            = gcc
 CXX           = g++
 DEFINES       = -DQT_QML_DEBUG
 CFLAGS        = -pipe -g -Wall -Wextra $(DEFINES)
-CXXFLAGS      = -pipe -g -std=gnu++1z -Wall -Wextra $(DEFINES)
+CXXFLAGS      = -pipe -g -std=gnu++2a -Wall -Wextra $(DEFINES)
 INCPATH       = -I../../../R5-05_BarberShopFIFO_BREST-LESTRADE_LEPAPE_VALETTE -I. -I/opt/Qt-6.11/6.11.1/gcc_64/mkspecs/linux-g++
 QMAKE         = /opt/Qt-6.11/6.11.1/gcc_64/bin/qmake
 DEL_FILE      = rm -f
@@ -40,7 +40,7 @@ DISTNAME      = Code_barbershop1.0.0
 DISTDIR = /amuhome/v24009568/ProgrammationConcurrente/Projet/R5-05_BarberShopFIFO_BREST-LESTRADE_LEPAPE_VALETTE/build/Desktop_Qt_6_11_1-Debug/.tmp/Code_barbershop1.0.0
 LINK          = g++
 LFLAGS        = 
-LIBS          = $(SUBLIBS)    
+LIBS          = $(SUBLIBS) pthread   
 AR            = ar cqs
 RANLIB        = 
 SED           = sed
@@ -270,6 +270,7 @@ DIST          = /opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/spec_pre.prf \
 		/opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/qt_config.prf \
 		/opt/Qt-6.11/6.11.1/gcc_64/mkspecs/linux-g++/qmake.conf \
 		/opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/spec_post.prf \
+		../../.qmake.stash \
 		/opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/exclusive_builds.prf \
 		/opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/toolchain.prf \
 		/opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/default_pre.prf \
@@ -511,6 +512,7 @@ Makefile: ../../Code_barbershop.pro /opt/Qt-6.11/6.11.1/gcc_64/mkspecs/linux-g++
 		/opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/qt_config.prf \
 		/opt/Qt-6.11/6.11.1/gcc_64/mkspecs/linux-g++/qmake.conf \
 		/opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/spec_post.prf \
+		.qmake.stash \
 		/opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/exclusive_builds.prf \
 		/opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/toolchain.prf \
 		/opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/default_pre.prf \
@@ -742,6 +744,7 @@ Makefile: ../../Code_barbershop.pro /opt/Qt-6.11/6.11.1/gcc_64/mkspecs/linux-g++
 /opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/qt_config.prf:
 /opt/Qt-6.11/6.11.1/gcc_64/mkspecs/linux-g++/qmake.conf:
 /opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/spec_post.prf:
+.qmake.stash:
 /opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/exclusive_builds.prf:
 /opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/toolchain.prf:
 /opt/Qt-6.11/6.11.1/gcc_64/mkspecs/features/default_pre.prf:

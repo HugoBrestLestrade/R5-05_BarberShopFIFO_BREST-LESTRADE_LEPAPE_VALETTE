@@ -3,7 +3,7 @@ CONFIG += console c++20
 CONFIG -= app_bundle
 CONFIG -= qt
 
-LIBS += pthread
+LIBS += -pthread
 
 SOURCES += \
         main.cpp

@@ -6,92 +6,91 @@
 #include <mutex>
 #include <condition_variable>
 #include <semaphore>
+#include <atomic>
 
 using namespace std;
-using namespace std::chrono_literals;
 
-int taille_file = 4;
-std::queue<int> file;
+const size_t capacite_file = 4;          // Nombre max d'étudiants dans la file d'attente
+std::queue<int> file_attente;            // File d'attente devant la caisse
 
-std::mutex mut;
-std::condition_variable cv_barbier;
-std::condition_variable cv_client;
-int client_appele = -1;
-bool salon_ferme = false;
+std::mutex tablette;                     // Tablette du CROUS : accès exclusif à la file d'attente
+std::condition_variable cv_employe;      // Pour sortir l'employé de TikTok
+std::condition_variable cv_etudiants;    // Pour sortir les étudiants de TikTok
+int etudiant_appele = -1;                // Numéro de l'étudiant appelé par l'employé
+std::atomic<bool> cafeteria_fermee(false); // Atomique : lu hors verrou dans la boucle de l'employé
 
-std::binary_semaphore coupe_finie(0); // Jeton pour que le barbier indique au client que sa coupe est fini
-std::binary_semaphore client_parti(0); // Jeton pour que le client indique au barbier qu'il a quitté le fauteuil
+std::binary_semaphore commande_servie(0);        // Jeton : l'employé indique à l'étudiant que sa commande est prête
+std::binary_semaphore place_paiement_liberee(0); // Jeton : l'étudiant indique qu'il a quitté la place de paiement
 
-void barbier(){
-    while (!salon_ferme){
-        std::unique_lock<std::mutex> verrou(mut); // On verrouille le barbier
+void employe_crous(){
+    while (!cafeteria_fermee){
+        std::unique_lock<std::mutex> verrou(tablette); // L'employé consulte la tablette
 
-        // Tant que la file est vide et que le salon n'est pas fermé, le barbier dort
-        while (file.size() == 0 && !salon_ferme) {
-            cv_barbier.wait(verrou);
-        }
+        // Tant que la file est vide et que la cafétéria est ouverte, l'employé scrolle sur TikTok
+        if (file_attente.empty() && !cafeteria_fermee)
+            cout << "L'employé du CROUS n'a personne : il scrolle sur TikTok." << endl;
+        cv_employe.wait(verrou, [&] { return !file_attente.empty() || cafeteria_fermee; });
 
-        // Si le salon n'est pas fermé, le barbier s'occupe du premier client de la file
-        if (!salon_ferme) {
-            int id_client = file.front();
-            file.pop();
-            client_appele = id_client;
+        // Si la cafétéria est ouverte, l'employé appelle le premier étudiant de la file
+        if (!cafeteria_fermee) {
+            int id_etudiant = file_attente.front();
+            file_attente.pop();                 // Une place se libère dans la file
+            etudiant_appele = id_etudiant;
 
-            verrou.unlock(); // On déverrouille manuellement avant de coiffer
+            verrou.unlock(); // L'employé repose la tablette avant de servir
 
-            cv_client.notify_all();
+            cv_etudiants.notify_all(); // Réveille les étudiants pour que le bon se manifeste
 
-            cout << "Le barbier coiffe le client " << id_client << endl;
-            std::this_thread::sleep_for(2s);
-            cout << "Le client " << id_client << " a fini et quitte le salon." << endl;
+            cout << "L'employé prend la commande de l'étudiant " << id_etudiant << endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+            cout << "L'étudiant " << id_etudiant << " récupère sa commande et quitte la cafétéria." << endl;
 
-            coupe_finie.release();
-            client_parti.acquire();
+            commande_servie.release();          // Remet la commande à l'étudiant
+            place_paiement_liberee.acquire();   // Attend que la place de paiement soit libre
         }
     }
 }
 
-void client(int id){
-    std::unique_lock<std::mutex> verrou(mut);
-    if (file.size() < taille_file){ // si la file d'attente n'est pas pleine
-        file.push(id); // ajoute le client à la fin de la file d'attente
-        cout << "Le client " << id << " s'assoit dans la salle d'attente." << endl;
-        cv_barbier.notify_one(); // réveille le barbier s'il dort
+void etudiant(int id){
+    std::unique_lock<std::mutex> verrou(tablette); // L'étudiant prend la tablette
+    if (file_attente.size() < capacite_file){       // La file n'est pas pleine
+        file_attente.push(id);                      // Signale sa présence sur la tablette
+        cout << "L'étudiant " << id << " entre, se signale sur la tablette et scrolle sur TikTok." << endl;
+        cv_employe.notify_one();                    // Sort l'employé de TikTok s'il y est
 
-        // Tant que le numéro appelé n'est pas le mien, je me rendors
-        while (client_appele != id) {
-            cv_client.wait(verrou);
-        }
+        // Tant que ce n'est pas mon numéro, je continue de scroller
+        cv_etudiants.wait(verrou, [&] { return etudiant_appele == id; });
         verrou.unlock();
 
-        coupe_finie.acquire();   // attend la fin de la coupe
-        client_parti.release();  // libère le fauteuil
+        commande_servie.acquire();          // Attend sa commande à la place de paiement
+        place_paiement_liberee.release();   // Libère la place de paiement
     }
     else{
-        cout << "Le client " << id << " repart car la salle est pleine" << endl;
+        cout << "L'étudiant " << id << " voit à travers la vitre que la file est pleine et repart." << endl;
     }
 }
 
 int main()
 {
-    std::thread t_barbier(barbier);
-    std::vector<std::thread> clients;
+    std::thread t_employe(employe_crous);
+    std::vector<std::thread> etudiants;
 
     for (int i = 0; i < 20; ++i){
-        clients.emplace_back(client, i);
-        std::this_thread::sleep_for(1s); // un client arrive toutes les 1 s
+        etudiants.emplace_back(etudiant, i);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // Un étudiant arrive toutes les secondes
     }
 
-    // On attend que tous les clients soient passés ou repartis
-    for (std::thread & t : clients)
+    // On attend que tous les étudiants soient servis ou repartis
+    for (std::thread & t : etudiants)
         t.join();
 
-    // Plus aucun client : on ferme le salon et on réveille le barbier pour qu'il s'arrête
-    mut.lock();
-    salon_ferme = true;
-    mut.unlock();
-    cv_barbier.notify_one();
+    // Plus aucun étudiant : on ferme la cafétéria et on sort l'employé de TikTok pour qu'il parte
+    {
+        std::lock_guard<std::mutex> verrou(tablette); // Verrou RAII : libéré automatiquement à la fin du bloc
+        cafeteria_fermee = true;
+    }
+    cv_employe.notify_one();
 
-    t_barbier.join();
+    t_employe.join();
     return 0;
 }

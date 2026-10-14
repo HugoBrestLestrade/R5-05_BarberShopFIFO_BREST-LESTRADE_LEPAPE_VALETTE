@@ -10,17 +10,17 @@
 
 using namespace std;
 
-const size_t capacite_file = 4;          // Nombre max d'étudiants dans la file d'attente
-std::queue<int> file_attente;            // File d'attente devant la caisse
+const size_t capacite_file = 4; // Nombre max d'étudiants dans la file d'attente
+std::queue<int> file_attente; // File d'attente devant la caisse
 
-std::mutex tablette;                     // Tablette du CROUS : accès exclusif à la file d'attente
-std::condition_variable reveil_employe;      // Pour sortir l'employé de TikTok
-std::condition_variable reveil_etudiants;    // Pour sortir les étudiants de TikTok
-int etudiant_appele = -1;                // Numéro de l'étudiant appelé par l'employé
-std::atomic<bool> cafeteria_fermee(false); // Atomique : lu hors verrou dans la boucle de l'employé
+std::mutex tablette; // Tablette du CROUS, représente l'accès exclusif à la file d'attente
+std::condition_variable reveil_employe; // Pour sortir l'employé de TikTok
+std::condition_variable reveil_etudiants; // Pour sortir les étudiants de TikTok
+int etudiant_appele = -1; // Numéro de l'étudiant appelé par l'employé != étudiant au hasard qui serait le problème classique du barbershop
+std::atomic<bool> cafeteria_fermee(false);
 
-std::binary_semaphore commande_servie(0);        // Jeton : l'employé indique à l'étudiant que sa commande est prête
-std::binary_semaphore place_paiement_liberee(0); // Jeton : l'étudiant indique qu'il a quitté la place de paiement
+std::binary_semaphore commande_servie(0); // Jeton pour que l'employé indique à l'étudiant que sa commande est prête
+std::binary_semaphore place_paiement_liberee(0); // Jeton pour que l'étudiant indique qu'il a quitté la place de paiement
 
 void employe_crous(){
     while (!cafeteria_fermee){
@@ -33,8 +33,8 @@ void employe_crous(){
 
         // Si la cafétéria est ouverte, l'employé appelle le premier étudiant de la file
         if (!cafeteria_fermee) {
-            int id_etudiant = file_attente.front();
-            file_attente.pop();                 // Une place se libère dans la file
+            int id_etudiant = file_attente.front(); // Récupère l'identifiant du premier étudiant
+            file_attente.pop(); // Puis le fait sortir de la file d'attente (l'étudiant scrolle encore)
             etudiant_appele = id_etudiant;
 
             verrou.unlock(); // L'employé repose la tablette avant de servir
@@ -42,28 +42,27 @@ void employe_crous(){
             reveil_etudiants.notify_all(); // Réveille les étudiants pour que le bon se manifeste
 
             cout << "L'employé prend la commande de l'étudiant " << id_etudiant << endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(2000)); // 2s = le temps que l'employé serve l'étudiant
+            commande_servie.release(); // Remet la commande à l'étudiant
+            place_paiement_liberee.acquire(); // Attend que la place de paiement soit libre
             cout << "L'étudiant " << id_etudiant << " récupère sa commande et quitte la cafétéria." << endl;
-
-            commande_servie.release();          // Remet la commande à l'étudiant
-            place_paiement_liberee.acquire();   // Attend que la place de paiement soit libre
         }
     }
 }
 
 void etudiant(int id){
     std::unique_lock<std::mutex> verrou(tablette); // L'étudiant prend la tablette
-    if (file_attente.size() < capacite_file){       // La file n'est pas pleine
-        file_attente.push(id);                      // Signale sa présence sur la tablette
+    if (file_attente.size() < capacite_file){ // Vérifie que la file n'est pas pleine
+        file_attente.push(id); // Signale sa présence sur la tablette
         cout << "L'étudiant " << id << " entre, se signale sur la tablette et scrolle sur TikTok." << endl;
-        reveil_employe.notify_one();                    // Sort l'employé de TikTok s'il y est
+        reveil_employe.notify_one(); // Sort l'employé de TikTok s'il y est
 
-        // Tant que ce n'est pas mon numéro, je continue de scroller
+        // Tant que ce n'est pas le numéro de l'étudiant, il continue de scroller
         reveil_etudiants.wait(verrou, [&] { return etudiant_appele == id; });
+        
         verrou.unlock();
-
-        commande_servie.acquire();          // Attend sa commande à la place de paiement
-        place_paiement_liberee.release();   // Libère la place de paiement
+        commande_servie.acquire(); // Attend sa commande à la place de paiement
+        place_paiement_liberee.release(); // Libère la place de paiement
     }
     else{
         cout << "L'étudiant " << id << " voit à travers la vitre que la file est pleine et repart." << endl;
@@ -84,13 +83,13 @@ int main()
     for (std::thread & t : threads_etudiants)
         t.join();
 
-    // Plus aucun étudiant : on ferme la cafétéria et on sort l'employé de TikTok pour qu'il parte
+    // On ferme la cafétéria car il n'y a plus aucun étudiant
     {
-        std::lock_guard<std::mutex> verrou(tablette); // Verrou RAII : libéré automatiquement à la fin du bloc
+        std::lock_guard<std::mutex> verrou(tablette);
         cafeteria_fermee = true;
     }
+     // On sort l'employé de TikTok une dernière fois pour lui dire que la cafétéria est fermée
     reveil_employe.notify_one();
-
-    thread_employe.join();
+    thread_employe.join(); // Et on le fait sortir / terminé son service
     return 0;
 }

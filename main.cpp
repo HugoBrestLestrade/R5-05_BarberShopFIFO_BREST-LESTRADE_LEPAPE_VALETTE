@@ -33,9 +33,9 @@ void employe_crous(){
 
         // Si la cafétéria est ouverte, l'employé appelle le premier étudiant de la file
         if (!cafeteria_fermee) {
-            int id_etudiant = file_attente.front(); // Récupère l'identifiant du premier étudiant
+            int id_etudiant = file_attente.front(); // Récupère l'identifiant du premier étudiant de la file
             file_attente.pop(); // Puis le fait sortir de la file d'attente (l'étudiant scrolle encore)
-            etudiant_appele = id_etudiant;
+            etudiant_appele = id_etudiant; // L'étudiant qui va se faire servir est celui qui vient d'être sorti de la file
 
             verrou.unlock(); // L'employé repose la tablette avant de servir
 

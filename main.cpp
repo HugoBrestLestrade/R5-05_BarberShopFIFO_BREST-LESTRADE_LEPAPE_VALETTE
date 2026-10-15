@@ -15,7 +15,7 @@ std::queue<int> file_attente; // File d'attente devant la caisse
 
 std::mutex tablette; // Tablette du CROUS, représente l'accès exclusif à la file d'attente
 std::condition_variable reveil_employe; // Pour sortir l'employé de TikTok
-std::condition_variable reveil_etudiants; // Pour sortir les étudiants de TikTok
+std::condition_variable reveil_etudiants; // Pour sortir les étudiants de TikTok lorsqu'un étudiant est appellé
 int etudiant_appele = -1; // Numéro de l'étudiant appelé par l'employé != étudiant au hasard qui serait le problème classique du barbershop
 std::atomic<bool> cafeteria_fermee(false);
 
@@ -37,7 +37,7 @@ void employe_crous(){
             file_attente.pop(); // Puis le fait sortir de la file d'attente (l'étudiant scrolle encore)
             etudiant_appele = id_etudiant; // L'étudiant qui va se faire servir est celui qui vient d'être sorti de la file
 
-            verrou.unlock(); // L'employé repose la tablette avant de servir
+            verrou.unlock(); // L'employé repose la tablette avant de servir l'étudient ( On libère le mutex )
 
             reveil_etudiants.notify_all(); // Réveille les étudiants pour que le bon se manifeste
 
@@ -90,6 +90,6 @@ int main()
     }
      // On sort l'employé de TikTok une dernière fois pour lui dire que la cafétéria est fermée
     reveil_employe.notify_one();
-    thread_employe.join(); // Et on le fait sortir / terminé son service
+    thread_employe.join(); // Et on le fait sortir / terminer son service
     return 0;
 }

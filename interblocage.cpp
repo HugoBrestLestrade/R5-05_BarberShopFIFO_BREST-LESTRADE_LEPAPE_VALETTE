@@ -82,7 +82,7 @@ void etudiant(int id){
         place_paiement_liberee.release(); // Libère la place de paiement
     }
     else{
-        cout << "\033[32m L'étudiant \033[33m" << id << "\033[0m voit à travers la vitre que la file est pleine et repart." << endl << endl;
+        cout << "\033[32m L'étudiant \033[33m" << id << "\033[0m voit à travers la vitre que la file est pleine.\033[31m Il repart très énervé \033[0m" << endl << endl;
     }
 }
 
@@ -93,7 +93,6 @@ int main()
     cout << endl << "\033[34mOuverture de la cafétéria !\033[0m" << endl;
     cout << "\033[33mLe nombre de places dans la file d'attente de la cafétéria est actuellement de 4\033[0m" << endl << endl;
 
-
     cout << "\033[31m3 étudiants se ruent à l'intérieur, ils sont affamés\033[0m" << endl << endl;
 
     // Les 3 étudiants rentrent rapidement
@@ -103,6 +102,7 @@ int main()
 
     this_thread::sleep_for(chrono::milliseconds(3000));
 
+    // Arrivée régulière des étudiants
     thread thread_employe(employe_crous);
     for (int i = 3; i < 10; ++i){
         threads_etudiants.emplace_back(etudiant, i);
@@ -127,18 +127,14 @@ int main()
         }
     }
 
-
     // On ferme la cafétéria car il n'y a plus aucun étudiant
     {
         lock_guard<mutex> acces_tablette(tablette);
         cafeteria_fermee = true;
     }
+
     // On sort l'employé de TikTok une dernière fois pour lui dire que la cafétéria est fermée
-    //reveil_employe.notify_one();
-
     reveil_employe.release();
-
-
 
     thread_employe.join(); // Et on le fait sortir / terminer son service
 

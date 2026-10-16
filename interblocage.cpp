@@ -111,11 +111,13 @@ int main()
 
     // On attend que tous les étudiants soient servis ou repartis
     for (thread & t : threads_etudiants)
-        t.join();
+        if (t.joinable()){
+            t.join();
+        }
 
     cout <<" Quelques étudiants entrent dans la cafétéria, l'employé scrolle actuellement sur TikTok." << endl << endl;
 
-    for (int i = 0; i < 6; ++i){
+    for (int i = 10; i < 16; ++i){
         threads_etudiants.emplace_back(etudiant, i);
         this_thread::sleep_for(chrono::milliseconds(1000)); // Un étudiant arrive toutes les secondes
     }

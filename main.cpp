@@ -70,21 +70,59 @@ void etudiant(int id){
         place_paiement_liberee.release(); // Libère la place de paiement
     }
     else{
-        cout << "\033[32m L'étudiant \033[33m" << id << "\033[0m voit à travers la vitre que la file est pleine et repart." << endl << endl;
+        cout << "\033[32m L'étudiant \033[33m" << id << "\033[0m voit à travers la vitre que la file est pleine.\033[31m Il repart très énervé. \033[0m" << endl << endl;
     }
 }
 
 int main()
 {
     vector<thread> threads_etudiants;
+    int choix_test = 1;
 
-    cout << endl << "\033[34m Ouverture de la cafétéria !\033[0m" << endl;
-    cout << "\033[33m Le nombre de places dans la file d'attente de la cafétéria est actuellement de 4.\033[0m" << endl << endl;
+    cout << endl << "\033[34m CHOIX DES TESTS \033[0m" << endl;
+    cout << "\033[33m Choisissez le test a lancer :\033[0m" << endl;
+    cout << "  Test 1 : Arrivées régulières et fluides" << endl;
+    cout << "  Test 2 : Arrivées irrégulières" << endl;
+    cout << "Votre choix (1 ou 2) : ";
+    cin >> choix_test;
+
+    if (choix_test != 1 && choix_test != 2) {
+        cout << "\033[31m Choix invalide, lancement du Test 1 par défaut.\033[0m" << endl;
+        choix_test = 1;
+    }
+
+    cout << endl << "\033[34m Ouverture de la cafétéria avec le TEST " << choix_test << " !\033[0m" << endl;
+    cout << "\033[33m Le nombre de places dans la file d'attente est actuellement de " << capacite_file << ".\033[0m" << endl << endl;
 
     thread thread_employe(employe_crous);
-    for (int i = 0; i < 10; ++i){
-        threads_etudiants.emplace_back(etudiant, i);
-        this_thread::sleep_for(chrono::milliseconds(1000)); // Un étudiant arrive toutes les secondes
+
+    if (choix_test == 1) {
+        cout << "\033[35m Les étudiants arrivent régulièrement, un étudiants toutes les secondes.\033[0m" << endl << endl;
+
+        for (int i = 0; i < 10; ++i){
+            threads_etudiants.emplace_back(etudiant, i);
+            this_thread::sleep_for(chrono::milliseconds(1000));
+        }
+
+    } else if (choix_test == 2) {
+        cout << "\033[35m Rush d'étudiants affamés, puis calme, puis nouveaux étudiants.\033[0m" << endl << endl;
+
+        for (int i = 0; i < 6; ++i){
+            threads_etudiants.emplace_back(etudiant, i);
+            this_thread::sleep_for(chrono::milliseconds(200)); // Arrivée rapide 200ms
+        }
+
+        // On attend un peu que l'employé vide la file et se retrouve tout seul, pour qu'il s'endorme sur TikTok
+        cout << "\n\033[33m Pause dans les arrivées alors la file a le temps de se vider et l'employé va s'endormir. \033[0m\n" << endl;
+        this_thread::sleep_for(chrono::milliseconds(10000));
+
+        // On ajoute de nouveaux étudiants alors que l'employé dormait
+        cout << "\n\033[33m Des étudiants arrivent pendant que l'employé scrolle. \033[0m\n" << endl;
+        for (int i = 6; i < 13; ++i){
+            threads_etudiants.emplace_back(etudiant, i);
+            this_thread::sleep_for(chrono::milliseconds(500)); // Arrivée rapide 500ms
+        }
+
     }
 
     // On attend que tous les étudiants soient servis ou repartis

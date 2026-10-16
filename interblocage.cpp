@@ -82,7 +82,7 @@ void etudiant(int id){
         place_paiement_liberee.release(); // Libère la place de paiement
     }
     else{
-        cout << "\033[32m L'étudiant \033[33m" << id << "\033[0m voit à travers la vitre que la file est pleine.\033[31m Il repart très énervé \033[0m" << endl << endl;
+        cout << "\033[32m L'étudiant \033[33m" << id << "\033[0m voit à travers la vitre que la file est pleine.\033[31m Il repart très énervé. \033[0m" << endl << endl;
     }
 }
 
